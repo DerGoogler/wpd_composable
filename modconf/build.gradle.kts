@@ -1,10 +1,14 @@
 plugins {
-    alias(libs.plugins.android.application)
+    id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
 
 val id = "mmrl_wpd"
 val targetPackage = "com.dergoogler.mmrl.debug"
+
+
+val versionCode = 354
+val versionName = "3.5.4"
 
 android {
     namespace = "com.dergoogler.modconf.$id"
@@ -14,8 +18,6 @@ android {
         minSdk = 21
         targetSdk = 34
 
-        versionCode = 354
-        versionName = "3.5.4"
 
         multiDexEnabled = false
     }
@@ -27,7 +29,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+
             isShrinkResources = false
             multiDexEnabled = false
             proguardFiles(
@@ -63,7 +65,11 @@ dependencies {
 
 val androidHome = System.getenv("ANDROID_HOME")
 val appId = providers.exec {
-    commandLine("$androidHome\\platform-tools\\adb.exe", "shell", "pm list packages -U | grep $targetPackage | cut -f 3 -d \":\"")
+    commandLine(
+        "$androidHome\\platform-tools\\adb.exe",
+        "shell",
+        "pm list packages -U | grep $targetPackage | cut -f 3 -d \":\""
+    )
 }.standardOutput.asText.get().trim()
 
 
@@ -82,11 +88,11 @@ tasks.register("push") {
 //    commandLine ("$ANDROID_HOME\\platform-tools\\adb.exe", "shell", "su", "-c \"chown $appId:$appId /data/data/$TARGET_PACKAGE/files/${ID}.dex\"")
 }
 
+
+
+
 tasks.register("updateModuleProp") {
     doLast {
-        val versionName = project.android.defaultConfig.versionName
-        val versionCode = project.android.defaultConfig.versionCode
-
         val modulePropFile = project.rootDir.resolve("module/module.prop")
 
         var content = modulePropFile.readText()
@@ -101,11 +107,26 @@ tasks.register("updateModuleProp") {
 tasks.register("copyFiles") {
     dependsOn("updateModuleProp")
 
+    val buildDir = project.layout.buildDirectory.get().asFile.path
+
+
     doLast {
+
+        exec {
+            val clazzes =
+                project.layout.buildDirectory.get().asFile.resolve("intermediates\\aar_main_jar\\release\\classes.jar")
+            commandLine(
+                "$androidHome\\build-tools\\34.0.0\\d8.bat",
+                "--output=$buildDir",
+                clazzes.path
+            )
+        }
+
+
         val fixedModId = id.replace(Regex("[^a-zA-Z0-9._]"), "_")
         val moduleFolder = project.rootDir.resolve("module")
         val dexFile =
-            project.layout.buildDirectory.get().asFile.resolve("intermediates/dex/release/minifyReleaseWithR8/classes.dex")
+            project.layout.buildDirectory.get().asFile.resolve("$buildDir/classes.dex")
 
         dexFile.copyTo(moduleFolder.resolve("common/$fixedModId.dex"), overwrite = true)
     }
@@ -114,7 +135,7 @@ tasks.register("copyFiles") {
 tasks.register<Zip>("zip") {
     dependsOn("copyFiles")
 
-    archiveFileName.set("${id}_${project.android.defaultConfig.versionName}.zip")
+    archiveFileName.set("${id}_${versionName}.zip")
     destinationDirectory.set(project.rootDir.resolve("out"))
 
     from(project.rootDir.resolve("module"))
