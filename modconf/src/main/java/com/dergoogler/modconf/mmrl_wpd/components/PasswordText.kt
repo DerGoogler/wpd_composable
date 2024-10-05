@@ -8,7 +8,7 @@ import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun PasswordText(text: String, hidePass: Boolean) {
     Text(
-        text = if (hidePass) "*".repeat(text.length) else text,
+        text = if (hidePass) "•".repeat(text.length) else text,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,

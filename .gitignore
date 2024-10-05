@@ -25,3 +25,11 @@ release/
 
 # MacOS
 .DS_Store
+
+.externalNativeBuild
+.cxx
+local.properties
+*.dex
+*.so
+*.zip
+out
