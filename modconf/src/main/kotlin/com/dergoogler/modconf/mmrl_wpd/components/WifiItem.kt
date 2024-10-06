@@ -15,7 +15,9 @@ import com.dergoogler.modconf.mmrl_wpd.WifiNetwork
 
 @Composable
 fun WifiItem(
-    network: WifiNetwork,
+//    network: WifiNetwork,
+    ssid: String,
+    password: String,
     hidePass: Boolean
 ) {
     Surface(
@@ -30,7 +32,7 @@ fun WifiItem(
                 .fillMaxWidth()
         ) {
             Text(
-                text = network.ssid,
+                text = ssid,
                 style = MaterialTheme.typography.titleLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -48,7 +50,7 @@ fun WifiItem(
                         .fillMaxWidth()
                 ) {
                     PasswordText(
-                        text = network.password,
+                        text = password,
                         hidePass = hidePass
                     )
                 }

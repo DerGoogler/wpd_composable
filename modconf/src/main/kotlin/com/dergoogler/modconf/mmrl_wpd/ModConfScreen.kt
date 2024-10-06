@@ -131,15 +131,17 @@ private fun TopBar(
     scrollBehavior = scrollBehavior
 )
 
+val networks = readFiles(
+    "/data/misc/wifi/WifiConfigStore.xml",
+    "/data/misc/apexdata/com.android.wifi/WifiConfigStore.xml",
+)
+val wifiNetworks = parseWifiConfigXml(networks)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModConfScreen() {
-    val networks = readFiles(
-        "/data/misc/wifi/WifiConfigStore.xml",
-        "/data/misc/apexdata/com.android.wifi/WifiConfigStore.xml",
-    )
+
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val wifiNetworks = parseWifiConfigXml(networks)
 
     var hidePasswords by remember { mutableStateOf(true) }
 
@@ -164,21 +166,53 @@ fun ModConfScreen() {
                 }
             )
 
-            if (networks.isNotEmpty()) {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(wifiNetworks) { network ->
-                        WifiItem(
-                            network = network,
-                            hidePass = hidePasswords
-                        )
-                    }
-                }
-            } else {
-                PageIndicator(text = "No networks found")
-            }
+            WifiItem(
+                ssid = "sdf",
+                password = "sfdhlsdjk",
+                hidePass = hidePasswords
+            )
+            WifiItem(
+                ssid = "sdf",
+                password = "sfdhlsdjk",
+                hidePass = hidePasswords
+            )
+            WifiItem(
+                ssid = "sdf",
+                password = "sfdhlsdjk",
+                hidePass = hidePasswords
+            )
+            WifiItem(
+                ssid = "sdf",
+                password = "sfdhlsdjk",
+                hidePass = hidePasswords
+            )
+            WifiItem(
+                ssid = "sdf",
+                password = "sfdhlsdjk",
+                hidePass = hidePasswords
+            )
+            WifiItem(
+                ssid = "sdf",
+                password = "sfdhlsdjk",
+                hidePass = hidePasswords
+            )
+
+//            if (networks.isNotEmpty()) {
+//                LazyColumn(
+//                    contentPadding = PaddingValues(16.dp),
+//                    verticalArrangement = Arrangement.spacedBy(8.dp)
+//                ) {
+//                    items(wifiNetworks) { network ->
+//                        WifiItem(
+//                            network = network,
+//                            hidePass = hidePasswords
+//                        )
+//                    }
+//                }
+//            } else {
+//                PageIndicator(text = "No networks found")
+//            }
         }
     }
+
 }

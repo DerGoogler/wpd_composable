@@ -4,11 +4,10 @@ plugins {
 }
 
 val id = "mmrl_wpd"
-val targetPackage = "com.dergoogler.mmrl.debug"
+val isDebuggableMMRL = false
 
-
-val versionCode = 354
 val versionName = "3.5.4"
+val versionCode = 354
 
 android {
     namespace = "com.dergoogler.modconf.$id"
@@ -16,22 +15,17 @@ android {
 
     defaultConfig {
         minSdk = 21
-        targetSdk = 34
-
-
         multiDexEnabled = false
     }
 
     buildFeatures {
-        prefab = true
         compose = true
     }
 
     buildTypes {
         release {
-
             isShrinkResources = false
-            multiDexEnabled = false
+            multiDexEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
@@ -63,33 +57,81 @@ dependencies {
 }
 
 
-val androidHome = System.getenv("ANDROID_HOME")
+val androidHome: String = System.getenv("ANDROID_HOME")
 val appId = providers.exec {
     commandLine(
-        "$androidHome\\platform-tools\\adb.exe",
+        "$androidHome/platform-tools/adb.exe",
         "shell",
         "pm list packages -U | grep $targetPackage | cut -f 3 -d \":\""
     )
 }.standardOutput.asText.get().trim()
 
+val adbBin: String = "$androidHome/platform-tools/adb.exe"
+val androidTmp: String = "/data/local/tmp"
+val d8Bin: String = "$androidHome/build-tools/34.0.0/d8.bat"
+val buildDir: File = project.layout.buildDirectory.get().asFile
+val targetPackage = if (isDebuggableMMRL) "com.dergoogler.mmrl.debug" else "com.dergoogler.mmrl"
+val appDir: String = "/data/data/$targetPackage/files"
 
-tasks.register("pushDex") {
-    dependsOn("buildDex")
-//    commandLine("$ANDROID_HOME\\platform-tools\\adb.exe", "push", "$buildDir\\classes.dex", "/data/local/tmp/${ID}.dex")
+fun d8(vararg cmd: String) {
+    exec {
+        commandLine(d8Bin, *cmd)
+    }
 }
 
-tasks.register("moveDex") {
-    dependsOn("pushDex")
-//    commandLine ("$ANDROID_HOME\\platform-tools\\adb.exe", "shell", "su", "-c \"mv -f /data/local/tmp/${ID}.dex /data/data/$TARGET_PACKAGE/files/${ID}.dex\"")
+fun adbShell(vararg cmd: String) {
+    exec {
+        commandLine(adbBin, "shell", *cmd)
+    }
 }
 
-tasks.register("push") {
-    dependsOn("moveDex")
-//    commandLine ("$ANDROID_HOME\\platform-tools\\adb.exe", "shell", "su", "-c \"chown $appId:$appId /data/data/$TARGET_PACKAGE/files/${ID}.dex\"")
+fun adbPush(vararg cmd: String) {
+    exec {
+        commandLine(adbBin, "push", *cmd)
+    }
 }
 
+fun adbRootShell(vararg cmd: String) {
+    exec {
+        commandLine(adbBin, "shell", "su", "-c", "\"${cmd.joinToString(" ")}\"")
+    }
+}
 
+val classes = buildDir.resolve("intermediates/aar_main_jar/release/syncReleaseLibJars/classes.jar")
 
+tasks.register("debug") {
+    dependsOn("build")
+
+    doLast {
+        d8("--output=$buildDir", classes.path)
+
+        val dex = "${buildDir.path}/classes.dex"
+        val dexFile = "$androidTmp/${id}.dex"
+        val dexFileAtAppDir = "$appDir/${id}.dex"
+
+        adbPush(dex, dexFile)
+
+        adbRootShell("mv", "-f", dexFile, dexFileAtAppDir)
+
+        adbRootShell("chmod", "0444", dexFileAtAppDir)
+        adbRootShell("chown", "root:root", dexFileAtAppDir)
+
+        adbRootShell(
+            "am",
+            "start",
+            "-a",
+            "android.intent.action.MAIN",
+            "-n",
+            "$targetPackage/com.dergoogler.mmrl.ui.activity.ModConfActivity",
+            "--es",
+            "MOD_ID",
+            id,
+            "--ez",
+            "DEBUG",
+            "true"
+        )
+    }
+}
 
 tasks.register("updateModuleProp") {
     doLast {
@@ -105,28 +147,19 @@ tasks.register("updateModuleProp") {
 }
 
 tasks.register("copyFiles") {
-    dependsOn("updateModuleProp")
-
-    val buildDir = project.layout.buildDirectory.get().asFile.path
-
+    dependsOn("build", "updateModuleProp")
 
     doLast {
-
-        exec {
-            val clazzes =
-                project.layout.buildDirectory.get().asFile.resolve("intermediates\\aar_main_jar\\release\\classes.jar")
-            commandLine(
-                "$androidHome\\build-tools\\34.0.0\\d8.bat",
-                "--output=$buildDir",
-                clazzes.path
-            )
-        }
+        val clazzes = buildDir.resolve("intermediates/aar_main_jar/release/classes.jar")
+        d8(
+            "--output=${buildDir.path}",
+            clazzes.path
+        )
 
 
         val fixedModId = id.replace(Regex("[^a-zA-Z0-9._]"), "_")
         val moduleFolder = project.rootDir.resolve("module")
-        val dexFile =
-            project.layout.buildDirectory.get().asFile.resolve("$buildDir/classes.dex")
+        val dexFile = buildDir.resolve("classes.dex")
 
         dexFile.copyTo(moduleFolder.resolve("common/$fixedModId.dex"), overwrite = true)
     }
@@ -139,8 +172,4 @@ tasks.register<Zip>("zip") {
     destinationDirectory.set(project.rootDir.resolve("out"))
 
     from(project.rootDir.resolve("module"))
-}
-
-afterEvaluate {
-    tasks["assembleRelease"].finalizedBy("updateModuleProp", "copyFiles", "zip")
 }
