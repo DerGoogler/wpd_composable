@@ -1,8 +1,6 @@
 package com.dergoogler.modconf.mmrl_wpd
 
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
+import android.graphics.drawable.Drawable
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -10,9 +8,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -24,11 +26,18 @@ import com.dergoogler.modconf.mmrl_wpd.navigation.graphs.passwordsScreen
 import com.dergoogler.modconf.mmrl_wpd.navigation.graphs.settingsScreen
 import com.dergoogler.modconf.mmrl_wpd.utils.ext.navigatePopUpTo
 
+
 var isProviderAlive = false
 var managerName = ""
 var versionCode = 0
 var versionName = ""
 var modId = ""
+var dexFilePath = ""
+var mmrlPackageName = ""
+
+
+var drawables = mutableMapOf<String, Drawable>()
+
 
 @Composable
 fun ModConfScreen() {
@@ -64,6 +73,11 @@ private fun BottomNav(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
+    val context = LocalContext.current
+    val resources = context.resources
+    val drawableId = resources.getIdentifier("transparent", "drawable", context.packageName)
+
+
     val mainScreens by remember {
         derivedStateOf {
             listOf(MainScreen.Passwords, MainScreen.Settings)
@@ -79,13 +93,7 @@ private fun BottomNav(
             NavigationBarItem(
                 icon = {
                     Icon(
-                        painter = painterResource(
-                            id = if (selected) {
-                                screen.iconFilled
-                            } else {
-                                screen.icon
-                            }
-                        ),
+                        painter = painterResource(id = drawableId),
                         contentDescription = null,
                     )
                 },
