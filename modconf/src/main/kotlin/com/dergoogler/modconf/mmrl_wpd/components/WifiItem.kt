@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.dergoogler.modconf.mmrl_wpd.WifiNetwork
+import com.dergoogler.modconf.mmrl_wpd.utils.WifiNetwork
 
 @Composable
 fun WifiItem(

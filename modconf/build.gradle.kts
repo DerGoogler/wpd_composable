@@ -1,10 +1,11 @@
 plugins {
-    id("com.android.library")
+    alias(libs.plugins.android.application)
+    // id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
 
 val id = "mmrl_wpd"
-val isDebuggableMMRL = false
+val isDebuggableMMRL = true
 
 val versionName = "3.5.4"
 val versionCode = 354
@@ -48,12 +49,14 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.runtime.livedata)
-    implementation(libs.libsu.core)
-    implementation(libs.libsu.io)
+    compileOnly(libs.androidx.ui)
+    compileOnly(libs.androidx.material3)
+    compileOnly(libs.androidx.ui.tooling.preview)
+    compileOnly(libs.androidx.runtime.livedata)
+    compileOnly(libs.libsu.core)
+    compileOnly(libs.libsu.io)
+    compileOnly(libs.androidx.navigation.runtime.ktx)
+    compileOnly(libs.androidx.navigation.compose)
 }
 
 
@@ -97,17 +100,62 @@ fun adbRootShell(vararg cmd: String) {
     }
 }
 
+fun runDebugInMMRL() {
+    adbRootShell(
+        "am",
+        "start",
+        "-a",
+        "android.intent.action.MAIN",
+        "-n",
+        "$targetPackage/com.dergoogler.mmrl.ui.activity.ModConfActivity",
+        "--es",
+        "MOD_ID",
+        id,
+        "--ez",
+        "DEBUG",
+        "true"
+    )
+}
+
 val classes = buildDir.resolve("intermediates/aar_main_jar/release/syncReleaseLibJars/classes.jar")
 
-tasks.register("debug") {
-    dependsOn("build")
+
+val apkFile = "$androidTmp/${id}.apk"
+val apkFileAtAppDir = "$appDir/${id}.apk"
+val dexFile = "$androidTmp/${id}.dex"
+val dexFileAtAppDir = "$appDir/${id}.dex"
+
+tasks.register("clean-modconf") {
+    doLast {
+        // Removing old files to avoid conflict
+        adbRootShell("rm", "-rf", apkFile, apkFileAtAppDir, dexFile, dexFileAtAppDir)
+    }
+}
+
+tasks.register("debug-apk") {
+    dependsOn("clean-modconf", "build", "assembleRelease")
+
+    doLast {
+        val apk = "${buildDir.path}/outputs/apk/release/modconf-release-unsigned.apk"
+
+        adbPush(apk, apkFile)
+
+        adbRootShell("mv", "-f", apkFile, apkFileAtAppDir)
+
+        adbRootShell("chmod", "0444", apkFileAtAppDir)
+        adbRootShell("chown", "root:root", apkFileAtAppDir)
+
+        runDebugInMMRL()
+    }
+}
+
+tasks.register("debug-dex") {
+    dependsOn("clean-modconf", "build")
 
     doLast {
         d8("--output=$buildDir", classes.path)
 
         val dex = "${buildDir.path}/classes.dex"
-        val dexFile = "$androidTmp/${id}.dex"
-        val dexFileAtAppDir = "$appDir/${id}.dex"
 
         adbPush(dex, dexFile)
 
@@ -116,20 +164,7 @@ tasks.register("debug") {
         adbRootShell("chmod", "0444", dexFileAtAppDir)
         adbRootShell("chown", "root:root", dexFileAtAppDir)
 
-        adbRootShell(
-            "am",
-            "start",
-            "-a",
-            "android.intent.action.MAIN",
-            "-n",
-            "$targetPackage/com.dergoogler.mmrl.ui.activity.ModConfActivity",
-            "--es",
-            "MOD_ID",
-            id,
-            "--ez",
-            "DEBUG",
-            "true"
-        )
+        runDebugInMMRL()
     }
 }
 
