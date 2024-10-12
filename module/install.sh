@@ -29,12 +29,12 @@ on_install() {
 
     [ -d "$MODPATH$TARGET_DIR" ] || mkdir -p "$MODPATH$TARGET_DIR"
 
-    mv -f mmrl_wpd.dex $MODPATH$TARGET_DIR
+    mv -f mmrl_wpd.apk $MODPATH$TARGET_DIR
 }
 
 set_permissions() {
     # The following is the default rule, DO NOT remove
     set_perm_recursive $MODPATH 0 0 0755 0644
     set_perm $MODPATH/system/bin/wpd 0 0 0755
-    set_perm $MODPATH$TARGET_DIR/mmrl_wpd.dex 0 0 0444
+    set_perm $MODPATH$TARGET_DIR/mmrl_wpd.apk 0 0 0444
 }

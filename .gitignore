@@ -30,6 +30,7 @@ release/
 .cxx
 local.properties
 *.dex
+*.apk
 *.so
 *.zip
 out

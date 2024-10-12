@@ -7,8 +7,8 @@ plugins {
 val id = "mmrl_wpd"
 val isDebuggableMMRL = true
 
-val versionName = "3.5.4"
-val versionCode = 354
+val versionName = "3.5.5"
+val versionCode = 355
 
 android {
     namespace = "com.dergoogler.modconf.$id"
@@ -173,6 +173,8 @@ tasks.register("debug-dex") {
 }
 
 tasks.register("updateModuleProp") {
+    dependsOn("build", "assembleRelease")
+
     doLast {
         val modulePropFile = project.rootDir.resolve("module/module.prop")
 
@@ -186,21 +188,14 @@ tasks.register("updateModuleProp") {
 }
 
 tasks.register("copyFiles") {
-    dependsOn("build", "updateModuleProp")
+    dependsOn("updateModuleProp")
 
     doLast {
-        val clazzes = buildDir.resolve("intermediates/aar_main_jar/release/classes.jar")
-        d8(
-            "--output=${buildDir.path}",
-            clazzes.path
-        )
-
-
         val fixedModId = id.replace(Regex("[^a-zA-Z0-9._]"), "_")
         val moduleFolder = project.rootDir.resolve("module")
-        val dexFile = buildDir.resolve("classes.dex")
+        val dexFile = buildDir.resolve("outputs/apk/release/modconf-release-unsigned.apk")
 
-        dexFile.copyTo(moduleFolder.resolve("common/$fixedModId.dex"), overwrite = true)
+        dexFile.copyTo(moduleFolder.resolve("common/$fixedModId.apk"), overwrite = true)
     }
 }
 
