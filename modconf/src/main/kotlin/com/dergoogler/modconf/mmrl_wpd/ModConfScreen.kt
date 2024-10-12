@@ -1,30 +1,39 @@
 package com.dergoogler.modconf.mmrl_wpd
 
-import android.graphics.drawable.Drawable
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
-import androidx.navigation.NavController
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
-import com.dergoogler.modconf.mmrl_wpd.navigation.MainScreen
-import com.dergoogler.modconf.mmrl_wpd.navigation.graphs.passwordsScreen
-import com.dergoogler.modconf.mmrl_wpd.navigation.graphs.settingsScreen
-import com.dergoogler.modconf.mmrl_wpd.utils.ext.navigatePopUpTo
+import com.dergoogler.modconf.mmrl_wpd.components.PageIndicator
+import com.dergoogler.modconf.mmrl_wpd.components.WifiItem
+import com.dergoogler.modconf.mmrl_wpd.utils.FileReader
 
 
 var isProviderAlive = false
@@ -35,78 +44,82 @@ var modId = ""
 var dexFilePath = ""
 var mmrlPackageName = ""
 
+val networks = FileReader.readFiles(
+    "/data/misc/wifi/WifiConfigStore.xml",
+    "/data/misc/apexdata/com.android.wifi/WifiConfigStore.xml",
+)
 
-var drawables = mutableMapOf<String, Drawable>()
+val wifiNetworks = FileReader.parseWifiConfigXml(networks)
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModConfScreen() {
     val navController = rememberNavController()
 
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
+    var hidePasswords by remember { mutableStateOf(true) }
+
+
     Scaffold(
-        bottomBar = {
-            BottomNav(
-                navController = navController,
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            TopBar(
+                scrollBehavior = scrollBehavior,
+
+                actions = {
+                    IconButton(
+                        onClick = { hidePasswords = !hidePasswords }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Lock,
+                            contentDescription = null
+                        )
+                    }
+                },
             )
-        }
-    ) {
-        NavHost(
-            modifier = Modifier.padding(bottom = it.calculateBottomPadding()),
-            navController = navController,
-            startDestination = MainScreen.Passwords.route
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxWidth()
         ) {
-            passwordsScreen(
-                navController = navController
-            )
-            settingsScreen(
-                navController = navController
-            )
+            if (networks.isNotEmpty()) {
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(wifiNetworks) { network ->
+                        WifiItem(
+                            network = network,
+                            hidePass = hidePasswords
+                        )
+                    }
+                }
+            } else {
+                PageIndicator(text = "No networks found")
+            }
         }
     }
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BottomNav(
-    navController: NavController,
-) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-
-    val context = LocalContext.current
-    val resources = context.resources
-    val drawableId = resources.getIdentifier("transparent", "drawable", context.packageName)
-
-
-    val mainScreens by remember {
-        derivedStateOf {
-            listOf(MainScreen.Passwords, MainScreen.Settings)
-        }
-    }
-
-    NavigationBar(
-        modifier = Modifier.imePadding()
-    ) {
-        mainScreens.forEach { screen ->
-            val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        painter = painterResource(id = drawableId),
-                        contentDescription = null,
-                    )
-                },
-                label = {
-                    Text(
-                        text = screen.label,
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                },
-                alwaysShowLabel = true,
-                selected = selected,
-                onClick = { if (!selected) navController.navigatePopUpTo(screen.route) }
-            )
-        }
-    }
-}
+private fun TopBar(
+    scrollBehavior: TopAppBarScrollBehavior,
+    actions: @Composable() (RowScope.() -> Unit) = {}
+) = TopAppBar(
+    title = {
+        Text(
+            text = "WiFi Password Viewer",
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = LocalContentColor.current
+        )
+    },
+    actions = actions,
+    scrollBehavior = scrollBehavior
+)

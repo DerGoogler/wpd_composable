@@ -47,14 +47,12 @@ class FileReader {
                     val name = parser.name
                     when (eventType) {
                         XmlPullParser.START_TAG -> {
-                            println("Start Tag: $name")  // Debugging output
                             if (name == "string" && parser.getAttributeValue(
                                     null,
                                     "name"
                                 ) == "SSID"
                             ) {
                                 currentSSID = parser.nextText().removeSurrounding("\"")
-                                println("Parsed SSID: $currentSSID")  // Debugging output
                             }
                             if (name == "string" && parser.getAttributeValue(
                                     null,
@@ -62,15 +60,12 @@ class FileReader {
                                 ) == "PreSharedKey"
                             ) {
                                 currentPassword = parser.nextText().removeSurrounding("\"")
-                                println("Parsed PreSharedKey: $currentPassword")  // Debugging output
                             }
                         }
 
                         XmlPullParser.END_TAG -> {
-                            println("End Tag: $name")  // Debugging output
                             if (name == "WifiConfiguration" && currentSSID != null && currentPassword != null) {
                                 wifiNetworks.add(WifiNetwork(currentSSID, currentPassword))
-                                println("Added WifiNetwork: SSID=$currentSSID, Password=$currentPassword")  // Debugging output
                                 currentSSID = null
                                 currentPassword = null
                             }

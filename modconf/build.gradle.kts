@@ -40,12 +40,15 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
-
-    packaging {
-        resources {
-            excludes += "**"
-        }
-    }
+    packaging.resources.excludes += setOf(
+        "META-INF/**",
+        "okhttp3/**",
+        "kotlin/**",
+        "org/**",
+        "**.properties",
+        "**.bin",
+        "**/*.proto"
+    )
 }
 
 dependencies {
@@ -55,19 +58,20 @@ dependencies {
     compileOnly(libs.androidx.runtime.livedata)
     compileOnly(libs.libsu.core)
     compileOnly(libs.libsu.io)
+    compileOnly(libs.androidx.hilt.navigation.compose)
     compileOnly(libs.androidx.navigation.runtime.ktx)
     compileOnly(libs.androidx.navigation.compose)
 }
 
 
 val androidHome: String = System.getenv("ANDROID_HOME")
-val appId = providers.exec {
-    commandLine(
-        "$androidHome/platform-tools/adb.exe",
-        "shell",
-        "pm list packages -U | grep $targetPackage | cut -f 3 -d \":\""
-    )
-}.standardOutput.asText.get().trim()
+//val appId = providers.exec {
+//    commandLine(
+//        "$androidHome/platform-tools/adb.exe",
+//        "shell",
+//        "pm list packages -U | grep $targetPackage | cut -f 3 -d \":\""
+//    )
+//}.standardOutput.asText.get().trim()
 
 val adbBin: String = "$androidHome/platform-tools/adb.exe"
 val androidTmp: String = "/data/local/tmp"
